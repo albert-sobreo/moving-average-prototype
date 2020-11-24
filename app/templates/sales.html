@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>
+</head>
+<body>
+    <div id="app">
+        <nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+            <ul class="navbar-nav mx-auto">
+                <li class="nav-item">
+                  <a class="nav-link" href="/purchase">Purchase</a>
+                </li>
+                <li class="nav-item active">
+                  <a class="nav-link" href="/sales">Sales</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="/inventory">Inventory</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="/logs">Logs</a>
+                </li>
+              </ul>
+        </nav>
+        <div style="display: flex; align-items:center; justify-content:center; flex-direction:column; align-content:center; height: 75vh">
+            <div>
+                <h1><b>Sales</b></h1>
+            </div>
+            <div style="align-items: left; text-align:left">
+                    <div style="flex-direction: column;" class="form-group">
+                        <label for="inventory" class="font-weight-bold">Item</label>
+                        <select name="inventory" class="form-control" required v-model='itemSelect' @change="onSelectChange1(itemSelect)">
+                            <option value="" disabled selected><span class="class-secondary" style="color: green;">Select item</span></option>
+                            <option v-for="item in itemOptions" v-bind:value="item.value">[[item.text]]</option>
+                        </select>
+                    </div>
+                    <div style="flex-direction: column;" class="form-group">
+                        <label for="quantity" class="font-weight-bold">Quantity</label>
+                        <input type="number" class="form-control" name="quantity" v-model="quantity" @focus="$event.target.select()" id="quantity" disabled required>
+                    </div>
+                    <div style="flex-direction: column;" class="form-group">
+                        <label for="cost_per_item" class="font-weight-bold">Cost Per Item</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">₱</span>
+                            </div>
+                            <input type="number" step="0.01" class="form-control" name="inventoryPPI" v-model="inventoryPPI" @focus="$event.target.select()" id="inventoryPPI" disabled required readonly>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="total_cost" class="font-weight-bold">Total Cost</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">₱</span>
+                            </div>
+                            <input type="number" step="0.01" class="form-control" name="total_cost" v-model="total_cost" readonly @focus="$event.target.select()" id="total_cost" disabled required>
+                        </div>
+                        
+                    </div>
+                    <button id="purchaseButton" disabled @click='sales(itemSelect, quantity, total_cost)' class="btn btn-dark my-3">Submit</button>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+
+<script>
+    Server = {
+        getInventoryItems(){
+            fetch('/getitems')
+            .then(response => response.json())
+            .then(data => app.itemOptions = data)
+        },
+    
+        getInventoryPPI(itemSelect){
+            payload = {
+                itemSelect: itemSelect
+            }
+    
+            fetch('/getinventoryppi/', {
+                method: "POST",
+                headers: {
+                    "Accept": 'application/json',
+                    "Content-Type": 'application/json;charset=UTF-8'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => app.inventoryPPI = data)
+        },
+    
+        pushPurchase(itemSelect, quantity, ppi, total_cost){
+            payload = {
+                itemSelect: itemSelect,
+                quantity: quantity,
+                ppi: ppi,
+                total_cost: total_cost
+            }
+    
+            fetch('/purchaseprocess/',{
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json;charset=UTF-8'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res=>res.json())
+            .then(data=>app.giveAlerts(data))
+    
+        },
+
+        pushSales(itemSelect, quantity, total_cost){
+            payload = {
+                itemSelect: itemSelect,
+                quantity: quantity,
+                total_cost: total_cost
+            }
+
+            fetch('/salesprocess/',{
+                method: "POST",
+                headers: {
+                    "Accept": 'application/json',
+                    'Content-Type': 'application/json;charset=UTF-8'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res=>res.json())
+            .then(data=>app.giveAlerts(data))
+        }
+    }
+    
+    var app = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            inventoryPPI: 0.0,
+            alertMessage: '',
+            quantity: 0,
+            ppi: 0,
+            total_cost: 0,
+            itemSelect: '',
+            itemOptions: [
+                {
+                    text: '',
+                    value: ''
+                }
+            ]
+        },
+        methods:{
+            giveAlerts(message){
+                console.log(message.message, message.item, message.quantity)
+                if(message.message == 'success'){
+                    Swal.fire({
+                        title: 'Sales Success!',
+                        text: 'You have sold ' + message.quantity + ' ' + message.item + ((message.quantity > 1) ? 's' : ''),
+                        icon: 'success',
+                        confirmButtonText: 'Dismiss',
+                        type: 'success'
+                    })
+                }
+                else if (message.message == 'less than quantity'){
+                    Swal.fire({
+                        title: 'Sales denied',
+                        text: "You are selling " + message.sales_quantity + ' ' + message.item + ((message.sales_quantity > 1) ? 's' : '') + ' but you only have ' + message.inventory_quantity + ' in total.',
+                        icon: 'error',
+                        confirmButtonText: "Dismiss",
+                        type: 'error'
+                    })
+                }
+                else if (message.message == 'zero'){
+                    Swal.fire({
+                        title: 'Sales denied',
+                        text: "You are selling 0 items. Why?",
+                        icon: 'error',
+                        confirmButtonText: "Dismiss",
+                        type: "error"
+                    })
+                }
+            },
+            purchase(){
+                Server.pushPurchase(this.itemSelect, this.quantity, this.ppi, this.total_cost)
+                
+                document.getElementById('purchaseButton').disabled = true
+                this.itemSelect = ''
+                this.quantity = 0
+                this.ppi = 0
+                this.total_cost = 0
+                this.inventoryPPI = 0.0
+            },
+            sales(){
+                Server.pushSales(this.itemSelect, this.quantity, this.total_cost)
+
+                document.getElementById('purchaseButton').disabled = true
+                this.itemSelect = ''
+                this.quantity = 0
+                this.ppi = 0
+                this.total_cost = 0
+                this.inventoryPPI = 0.0
+            },
+            onSelectChange0(){
+                document.getElementById('purchaseButton').disabled = false
+            },
+            onSelectChange1(itemSelect){
+                document.getElementById('purchaseButton').disabled = false
+                document.getElementById('quantity').disabled = false
+                document.getElementById('inventoryPPI').disabled = false
+                document.getElementById('total_cost').disabled = false
+                Server.getInventoryPPI(itemSelect)
+            }
+        },
+        watch:{
+            quantity:function(val){
+                this.quantity = val
+                this.total_cost = (this.inventoryPPI * val).toFixed(2)
+            }
+        },
+        mounted(){
+            Server.getInventoryItems()
+        }
+    
+    })
+</script>
+
+
+</html>
