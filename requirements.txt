@@ -33,15 +33,12 @@ imutils==0.5.2
 incremental==17.5.0
 jsonfield==2.0.2
 numpy==1.16.4
-opencv-python==4.1.0.25
 pandas==1.1.4
 passlib==1.7.1
 pefile==2019.4.18
 Pillow==6.1.0
 pinax-messages==2.0.2
-psycopg2==2.8.4
 pycparser==2.19
-pygame==1.9.6
 PyHamcrest==1.9.0
 pyinstaller==4.0
 pyinstaller-hooks-contrib==2020.8
